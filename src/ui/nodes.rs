@@ -10,33 +10,36 @@ use tui::{
 };
 
 use crate::ui::NodeTabSelected;
-use crate::explorer::Explorer;
+use crate::explorer::nodes::Node;
 use crate::ui::{App, InputMode, FilterMode};
 
-pub fn render_nodes<'a>(node_list_state: &ListState, explorer: &'a Explorer, app: &App) -> (List<'a>, Table<'a>) {
+pub fn render_nodes<'a>(
+    filtered_nodes: &[&'a Node],
+    selected_node: Option<&'a Node>,
+    app: &App,
+    explorer: &crate::explorer::Explorer,
+) -> (List<'a>, Table<'a>) {
     let selected_node_tab = &app.selected_node_tab;
     let (style_list, style_detail) = match selected_node_tab {
-        NodeTabSelected::Detail  => { (Style::default().fg(Color::White), Style::default().fg(Color::Green)) },
-        NodeTabSelected::FileList => {
-            match explorer.filter_mode {
-                FilterMode::Contain => {
-                    (Style::default().fg(Color::Green), Style::default().fg(Color::White))
-                }
-                FilterMode::Omit => {
-                    (Style::default().fg(Color::Red), Style::default().fg(Color::White))
-                }
-
+        NodeTabSelected::Detail => {
+            (Style::default().fg(Color::Gray), Style::default().fg(Color::White))
+        }
+        NodeTabSelected::FileList => match app.selected_node_tab {
+            NodeTabSelected::FileList => {
+                (Style::default().fg(Color::Gray), Style::default().fg(Color::Gray))
             }
-        },
+            _ => (Style::default().fg(Color::Gray), Style::default().fg(Color::Gray)),
+        }
     };
-    let nodes_block:Block = Block::default()
+
+    let nodes_block: Block = Block::default()
         .borders(Borders::ALL)
         .style(style_list)
-        .title(format!("Filter: '{}'", explorer.show_folder_filter()))
+        .title(format!("Filter: '{}'", explorer.get_folder_filter_string()))
         .border_type(BorderType::Plain);
 
-    let items: Vec<ListItem> = explorer.filtered_nodes()
-        .into_iter()
+    let items: Vec<ListItem> = filtered_nodes
+        .iter()
         .map(|node| {
             ListItem::new(Spans::from(vec![Span::styled(
                 node.summary(),
@@ -45,21 +48,26 @@ pub fn render_nodes<'a>(node_list_state: &ListState, explorer: &'a Explorer, app
         })
         .collect();
 
-    let list = List::new(items).block(nodes_block).highlight_style(
-        Style::default()
-            .bg(Color::Yellow)
-            .fg(Color::Black)
-            .add_modifier(Modifier::BOLD),
-    );
+    let list = List::new(items)
+        .block(nodes_block)
+        .highlight_style(
+            Style::default()
+                .bg(Color::White)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        );
 
-    let (file_name, node_detail) = explorer.node_detail(node_list_state.selected().expect("there is always a selected node"), app.offset_detail);
+    let (file_name, node_detail) = if let Some(node) = selected_node {
+        (node.file_name(), node.detail(app.offset_detail))
+    } else {
+        (String::from(""), Table::new(vec![]))
+    };
+
     let node_detail = node_detail
-        .header(Row::new(vec![
-            Cell::from(Span::styled(
-                format!(" {}", file_name),
-                Style::default().add_modifier(Modifier::BOLD),
-            )),
-        ]))
+        .header(Row::new(vec![Cell::from(Span::styled(
+            format!(" {}", file_name),
+            Style::default().add_modifier(Modifier::BOLD),
+        ))]))
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -67,80 +75,89 @@ pub fn render_nodes<'a>(node_list_state: &ListState, explorer: &'a Explorer, app
                 .title("Detail")
                 .border_type(BorderType::Plain),
         )
-        .widths(&[
-            Constraint::Percentage(100),
-        ]);
+        .widths(&[Constraint::Percentage(100)]);
 
     (list, node_detail)
 }
 
-pub fn action_nodes(explorer: &mut Explorer, app: &mut App, key: KeyEvent, node_list_state: &mut ListState) {
+pub fn action_nodes(
+    explorer: &mut crate::explorer::Explorer,
+    app: &mut App,
+    key: KeyEvent,
+    node_list_state: &mut ListState,
+) {
     match app.get_input_mode() {
-        InputMode::Normal => {
-            match key.code {
-                KeyCode::Char('i') => app.set_input_mode(InputMode::Editing),
-                KeyCode::Char('c') => { 
-                    explorer.filter_mode = FilterMode::Contain;
-                    // TODO: run again filter to refresh nodes with filter mode
-                },
-                KeyCode::Char('o') => {
-                    explorer.filter_mode = FilterMode::Omit
-                    // TODO: run again filter to refresh nodes with filter mode
-                },
-                _ => {}
+        InputMode::Normal => match key.code {
+            KeyCode::Char('i') => app.set_input_mode(InputMode::Editing),
+            KeyCode::Char('c') => {
+                explorer.filter_mode = FilterMode::Contain;
             }
-        }
+            KeyCode::Char('o') => {
+                explorer.filter_mode = FilterMode::Omit;
+            }
+            _ => {}
+        },
         InputMode::Editing => {
             explorer.update_folder_filter(key.code);
         }
     }
+
     match key.code {
-        // KeyCode::Left => { explorer.decrease_context(); },
-        KeyCode::Left => { explorer.update_context(node_list_state.selected().unwrap(), -1); },
-        KeyCode::Right => { explorer.update_context(node_list_state.selected().unwrap(), 1); },
-        KeyCode::Down => {
-            match app.selected_node_tab {
-                NodeTabSelected::FileList => {
-                    if let Some(selected) = node_list_state.selected() {
-                        let amount_nodes = explorer.filtered_nodes().len(); // TODO: Consider borrow instead of clone
+        KeyCode::Down => match app.selected_node_tab {
+            NodeTabSelected::FileList => {
+                if let Some(selected) = node_list_state.selected() {
+                    let amount_nodes = explorer.filtered_nodes().len();
+                    if amount_nodes > 0 {
                         if selected >= amount_nodes - 1 {
                             node_list_state.select(Some(0));
                         } else {
                             node_list_state.select(Some(selected + 1));
                         }
+                    } else {
+                        node_list_state.select(Some(0));
                     }
-                    app.offset_detail = 0;
                 }
-                NodeTabSelected::Detail => {
-                    if let Some(selected) = node_list_state.selected() {
-                        if app.offset_detail < explorer.nodes.node_matches_count(selected) { app.offset_detail += 1; }
+                app.offset_detail = 0;
+            }
+            NodeTabSelected::Detail => {
+                if let Some(selected) = node_list_state.selected() {
+                    if let Some(node) = explorer.filtered_nodes().get(selected) {
+                        if app.offset_detail < node.len_matches_all() {
+                            app.offset_detail += 1;
+                        }
                     }
                 }
             }
-        }
-        KeyCode::Up => {
-            match app.selected_node_tab {
-                NodeTabSelected::FileList => {
-                    if let Some(selected) = node_list_state.selected() {
-                        let amount_nodes = explorer.filtered_nodes().len(); // TODO: Consider borrow instead of clone
+        },
+        KeyCode::Up => match app.selected_node_tab {
+            NodeTabSelected::FileList => {
+                if let Some(selected) = node_list_state.selected() {
+                    let amount_nodes = explorer.filtered_nodes().len();
+                    if amount_nodes > 0 {
                         if selected > 0 {
                             node_list_state.select(Some(selected - 1));
                         } else {
                             node_list_state.select(Some(amount_nodes - 1));
                         }
+                    } else {
+                        node_list_state.select(Some(0));
                     }
-                    app.offset_detail = 0;
                 }
-                NodeTabSelected::Detail => {
-                    if app.offset_detail > 0 { app.offset_detail -= 1; }
+                app.offset_detail = 0;
+            }
+            NodeTabSelected::Detail => {
+                if app.offset_detail > 0 {
+                    app.offset_detail -= 1;
                 }
             }
-        }
-        KeyCode::Tab => {app.selected_node_tab = if app.selected_node_tab == NodeTabSelected::FileList { NodeTabSelected::Detail } else { NodeTabSelected::FileList} }
-        KeyCode::Enter => {}
-        KeyCode::Backspace => {
+        },
+        KeyCode::Tab => {
+            app.selected_node_tab = if app.selected_node_tab == NodeTabSelected::FileList {
+                NodeTabSelected::Detail
+            } else {
+                NodeTabSelected::FileList
+            }
         }
         _ => {}
     }
 }
-

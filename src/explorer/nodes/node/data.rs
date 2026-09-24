@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use tui::{
-    text::{Spans, Span},
-    style::{Style, Color},
+    style::{Color, Modifier, Style}, text::{Span, Spans},
 };
 
 // #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -93,13 +92,13 @@ pub struct Match {
 }
 
 impl Match {
-    pub fn pretty_line_match(&self) -> Spans {
+    pub fn pretty_line_match(&self) -> Spans<'_> {
         let mut output = self.lines.text.clone();
         let mut vs: Vec<Span> = vec![Span::raw(format!("{}:", self.line_number))];
         for submatch in self.submatches.iter() {
             let (left_side, output_rest) = output.split_once(&submatch.r#match.text).unwrap();
             vs.push(Span::raw(left_side.to_string()));
-            vs.push(Span::styled(&submatch.r#match.text, Style::default().fg(Color::Yellow)));
+            vs.push(Span::styled(&submatch.r#match.text, Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)));
             output = output_rest.to_string();
         }
         vs.push(Span::raw(output));
@@ -110,20 +109,6 @@ impl Match {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SubnodeMatch {
     pub data: Match,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SubnodeContext {
-    pub data: Context,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Context {
-    path: Path,
-    pub lines: Lines,
-    line_number: usize,
-    absolute_offset: usize,
-    submatches: Vec<SubSubMatch>,
 }
 
 

@@ -18,6 +18,8 @@ mod wrapper;
 struct Cli {
     search_term: String,
     folder: Option<String>,
+    #[arg(long)]
+    debug: bool,
 }
 
 
@@ -25,7 +27,9 @@ struct Cli {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    // println!("name: {:?}\npath: {:?}", cli.search_term, cli.folder.as_deref());
+    if cli.debug {
+        eprintln!("[DEBUG] CLI parsed: search_term={}, folder={:?}, debug=true", cli.search_term, cli.folder);
+    }
 
     enable_raw_mode().expect("can run in raw mode");
 
@@ -34,12 +38,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let folder = if cli.folder.is_none() { String::from(".") } else { cli.folder.unwrap() };
+    let folder = if let Some(f) = cli.folder { f } else { String::from(".") };
 
-    wrapper::explorer_wrapper(&mut terminal, cli.search_term, folder)?;
+    wrapper::explorer_wrapper(&mut terminal, cli.search_term, folder, cli.debug)?;
 
     disable_raw_mode()?;
     terminal.show_cursor()?;
     Ok(())
 }
-
