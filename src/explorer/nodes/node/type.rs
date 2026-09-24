@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 // #[derive(Serialize, Deserialize, Debug, Clone)]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[allow(non_camel_case_types)]
 pub enum Type {
     begin,

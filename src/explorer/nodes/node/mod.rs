@@ -10,7 +10,7 @@ pub use r#type::Type;
 pub mod data;
 pub use data::{Data, SubnodeBegin, SubnodeMatch, Begin, Match};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Node {
     begin: Begin,
     r#match: Vec<Match>,
@@ -50,29 +50,29 @@ impl Node {
         self.r#match.iter().any(|m| m.lines.text.to_lowercase().contains(&term))
     }
 
-    pub fn new(data_raw: Vec<(&str, Type)>, after_context: usize, before_context: usize) -> Option<Self> {
+    pub fn new(data_raw: Vec<(String, Type)>, after_context: usize, before_context: usize) -> Option<Self> {
         let mut begin: Option<Begin> = None;
         let mut r#match: Vec<Match> = vec![];
         let mut end: Option<Data> = None;
         for (d, t) in data_raw {
             match t {
                 Type::begin => {
-                    if let Ok(sub) = Self::parse_subnode_begin(d) {
+                    if let Ok(sub) = Self::parse_subnode_begin(&d) {
                         begin = Some(sub.data);
                     }
                 }
                 Type::r#match => {
-                    if let Ok(sub) = Self::parse_subnode_match(d) {
+                    if let Ok(sub) = Self::parse_subnode_match(&d) {
                         r#match.push(sub.data);
                     }
                 }
                 Type::context => {
-                    if let Ok(sub) = Self::parse_subnode_match(d) {
+                    if let Ok(sub) = Self::parse_subnode_match(&d) {
                         r#match.push(sub.data);
                     }
                 }
                 Type::end => {
-                    if let Ok(e) = Self::parse_data(d) {
+                    if let Ok(e) = Self::parse_data(&d) {
                         end = Some(e);
                     }
                 }
