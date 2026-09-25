@@ -6,7 +6,7 @@ use tui::{
 };
 
 // #[derive(Serialize, Deserialize, Debug, Clone)]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Path {
     pub text: String,
 }
@@ -17,7 +17,7 @@ impl Display for Path {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Lines {
     pub text: String,
 }
@@ -28,26 +28,26 @@ impl Display for Lines {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 struct SubSubMatch { // TODO: change this name to match. You can keep on nesting data structures on src/nodes/node/match/submatch/etc as example
     text: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Submatch { // TODO: change this name to match. You can keep on nesting data structures on src/nodes/node/match/submatch/etc as example
     r#match: SubSubMatch,
     start: usize,
     end: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Elapsed {
     secs: usize,
     nanos: usize,
     pub human: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Stats {
     elapsed: Elapsed,
     searches: usize,
@@ -59,7 +59,7 @@ struct Stats {
 }
 
 // #[derive(Serialize, Deserialize, Debug, Clone)]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Data {
     pub path: Option<Path>,
     pub lines: Option<Lines>,
@@ -71,17 +71,17 @@ pub struct Data {
     pub elapsed_total: Option<Elapsed>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Begin {
     pub path: Path,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SubnodeBegin {
     pub data: Begin,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Match {
     pub path: Path,
     pub lines: Lines,

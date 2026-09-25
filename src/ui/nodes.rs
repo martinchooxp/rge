@@ -32,15 +32,10 @@ pub fn render_nodes<'a>(
         }
     };
 
-    let title = if explorer.scanning {
-        format!("Filter: '{}' (scanning {} files...)", explorer.get_folder_filter_string(), explorer.files_scanned)
-    } else {
-        format!("Filter: '{}'", explorer.get_folder_filter_string())
-    };
     let nodes_block: Block = Block::default()
         .borders(Borders::ALL)
         .style(style_list)
-        .title(title)
+        .title(format!("Filter: '{}'", explorer.get_folder_filter_string()))
         .border_type(BorderType::Plain);
 
     let items: Vec<ListItem> = filtered_nodes

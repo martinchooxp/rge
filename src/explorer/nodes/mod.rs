@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::str;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
 
@@ -7,26 +8,20 @@ pub use node::{Node,Type};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[allow(non_camel_case_types)]
-pub struct AuxType {
-    pub r#type: Type,
+struct AuxType {
+    r#type: Type,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Nodes(pub Vec<Node>);
 
-impl Default for Nodes {
-    fn default() -> Self {
-        Nodes(vec![])
-    }
-}
-
 impl Nodes {
-    pub fn new(data_raw: Vec<String>, after_context: usize, before_context: usize) -> Self {
+    pub fn new(data_raw: Vec<&str>, after_context: usize, before_context: usize) -> Self {
         let mut v: Nodes = Nodes(vec![]);
-        let mut aux_vecs: Vec<(String, Type)> = vec![];
+        let mut aux_vecs: Vec<(&str, Type)> = vec![];
 
         for d in data_raw {
-            let t = match Self::parse_type(&d) {
+            let t = match Self::parse_type(d) {
                 Ok(t) => t,
                 Err(_) => continue,
             };
@@ -47,7 +42,7 @@ impl Nodes {
         v
     }
 
-    pub fn parse_type(d: &str) -> Result<AuxType> {
+    fn parse_type(d: &str) -> Result<AuxType> {
         let n: AuxType = serde_json::from_str(d)?;
         Ok(n)
     }
